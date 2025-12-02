@@ -102,17 +102,17 @@ def create_csp_model(csp):
 
 #  Contoh Penggunaan
 
-if __name__ == '__main__':
-    dataset = load_dataset(
-        'dataset_irigasi_50_petak.csv',
-        'data_csp_irigasi.csv'
-    )
+# if __name__ == '__main__':
+#     dataset = load_dataset(
+#         'dataset_irigasi_50_petak.csv',
+#         'data_csp_irigasi.csv'
+#     )
 
-    model = create_csp_model(dataset)
+#     model = create_csp_model(dataset)
 
-    print("Total variabel:", len(model['variables']))
-    print("Contoh domain:", model['domain'][model['variables'][0]])
-    print("Jumlah constraints:", len(model['constraints']))
+#     print("Total variabel:", len(model['variables']))
+#     print("Contoh domain:", model['domain'][model['variables'][0]])
+#     print("Jumlah constraints:", len(model['constraints']))
 
 # ================= BAGIAN 2 - ANGGOTA 2 =================  
 # Backtracking Basic
