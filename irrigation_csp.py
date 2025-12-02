@@ -115,10 +115,104 @@ def create_csp_model(csp):
 #     print("Jumlah constraints:", len(model['constraints']))
 
 # ================= BAGIAN 2 - ANGGOTA 2 =================  
-# Backtracking Basic
-def backtracking_search():
-    """Implementasi backtracking dasar"""
-    pass
+
+# Backtracking Algorithm
+def backtracking_search(csp):
+    return recursive_backtracking({}, csp)
+
+def recursive_backtracking(assignment, csp):
+    if is_complete_assignment(assignment, csp):
+        return assignment
+    
+    var = select_unassigned_variable(assignment, csp)
+    
+    for value in order_domain_values(var, assignment, csp):
+        if is_consistent(var, value, assignment, csp):
+            assignment[var] = value
+            
+            inferences = {}
+            if csp.get('inference') == 'forward_checking':
+                inferences = forward_checking(csp, var, value, assignment)
+                if inferences is None:
+                    del assignment[var]
+                    continue
+                assignment.update(inferences)
+            
+            result = recursive_backtracking(assignment, csp)
+            if result is not None:
+                return result
+            
+            del assignment[var]
+            if inferences:
+                for inf_var in list(inferences.keys()):
+                    if inf_var in assignment:
+                        del assignment[inf_var]
+    
+    return None
+
+def is_complete_assignment(assignment, csp):
+    return len(assignment) == len(csp['variables'])
+
+def is_consistent(var, value, assignment, csp):
+    if check_capacity_constraint(var, value, assignment, csp):
+        return False
+    if check_priority_constraint(var, value, assignment, csp):
+        return False
+    if check_additional_constraints(var, value, assignment, csp):
+        return False
+    for constraint in csp['constraints']:
+        if constraint[0] == 'provinsi_constraint':
+            _, v1, v2, func = constraint
+            if var == v1 and v2 in assignment:
+                if not func(v1, v2, value, assignment[v2]):
+                    return False
+            if var == v2 and v1 in assignment:
+                if not func(v1, v2, assignment[v1], value):
+                    return False
+    return True
+
+def select_unassigned_variable(assignment, csp):
+    for var in csp['variables']:
+        if var not in assignment:
+            return var
+    return None
+
+def order_domain_values(var, assignment, csp):
+    return list(csp['domain'][var])
+
+def _day_to_index(day_str):
+    if isinstance(day_str, (int, np.integer)):
+        return int(day_str)
+    if isinstance(day_str, str) and day_str.startswith('Hari_'):
+        try:
+            return int(day_str.split('_')[1])
+        except Exception:
+            return None
+    return None
+
+def check_capacity_constraint(var, value, assignment, csp):
+    target_day = value
+    total_hours = 0
+    for assigned_var, assigned_day in assignment.items():
+        if assigned_day == target_day:
+            total_hours += csp['kebutuhan'][assigned_var]
+    total_hours += csp['kebutuhan'][var]
+    return total_hours > csp.get('kapasitas_per_hari', 20)
+
+def check_priority_constraint(var, value, assignment, csp):
+    prioritas = csp['prioritas'][var]
+    day_idx = _day_to_index(value)
+    if prioritas >= 4 and day_idx is not None and day_idx > 3:
+        return True
+    return False
+
+def check_additional_constraints(var, value, assignment, csp):
+    if 'provinsi' in csp:
+        provinsi_var = csp['provinsi'][var]
+        for assigned_var, assigned_day in assignment.items():
+            if assigned_day == value and csp['provinsi'][assigned_var] == provinsi_var:
+                return True
+    return False
 
 # ================= BAGIAN 3 - ANGGOTA 3 =================
 # Heuristics
