@@ -5,21 +5,21 @@ import pandas as pd
 import numpy as np
 
 
-np.random.seed(42)
+# np.random.seed(42)
 
-# df = pd.DataFrame({
-#     'kabupaten': [f'Kabupaten_{i}' for i in range(1, 51)],
-#     'provinsi': np.random.choice(['Provinsi A', 'Provinsi B', 'Provinsi C'], 50),
-#     'kebutuhan_jam': np.random.randint(5, 20, 50),
-#     'prioritas': np.random.randint(1, 5, 50)
-# })
+# # df = pd.DataFrame({
+# #     'kabupaten': [f'Kabupaten_{i}' for i in range(1, 51)],
+# #     'provinsi': np.random.choice(['Provinsi A', 'Provinsi B', 'Provinsi C'], 50),
+# #     'kebutuhan_jam': np.random.randint(5, 20, 50),
+# #     'prioritas': np.random.randint(1, 5, 50)
+# # })
 
-df.to_csv('dataset_irigasi_50_petak.csv', index=False)
-print("Dataset telah disimpan ke 'dataset_irigasi_50_petak.csv'")
+# df.to_csv('dataset_irigasi_50_petak.csv', index=False)
+# print("Dataset telah disimpan ke 'dataset_irigasi_50_petak.csv'")
 
-csp_data = df[['kabupaten', 'kebutuhan_jam', 'prioritas']]
-csp_data.to_csv('data_csp_irigasi.csv', index=False)
-print("Data CSP telah disimpan ke 'data_csp_irigasi.csv'")
+# csp_data = df[['kabupaten', 'kebutuhan_jam', 'prioritas']]
+# csp_data.to_csv('data_csp_irigasi.csv', index=False)
+# print("Data CSP telah disimpan ke 'data_csp_irigasi.csv'")
 
 
 # ==============================
