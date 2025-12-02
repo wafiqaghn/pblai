@@ -160,6 +160,15 @@ def is_consistent(var, value, assignment, csp):
         return False
     if check_additional_constraints(var, value, assignment, csp):
         return False
+    for constraint in csp['constraints']:
+        if constraint[0] == 'provinsi_constraint':
+            _, v1, v2, func = constraint
+            if var == v1 and v2 in assignment:
+                if not func(v1, v2, value, assignment[v2]):
+                    return False
+            if var == v2 and v1 in assignment:
+                if not func(v1, v2, assignment[v1], value):
+                    return False
     return True
 
 def select_unassigned_variable(assignment, csp):
