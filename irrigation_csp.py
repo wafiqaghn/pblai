@@ -5,21 +5,21 @@ import pandas as pd
 import numpy as np
 
 
-np.random.seed(42)
+# np.random.seed(42)
 
-# df = pd.DataFrame({
-#     'kabupaten': [f'Kabupaten_{i}' for i in range(1, 51)],
-#     'provinsi': np.random.choice(['Provinsi A', 'Provinsi B', 'Provinsi C'], 50),
-#     'kebutuhan_jam': np.random.randint(5, 20, 50),
-#     'prioritas': np.random.randint(1, 5, 50)
-# })
+# # df = pd.DataFrame({
+# #     'kabupaten': [f'Kabupaten_{i}' for i in range(1, 51)],
+# #     'provinsi': np.random.choice(['Provinsi A', 'Provinsi B', 'Provinsi C'], 50),
+# #     'kebutuhan_jam': np.random.randint(5, 20, 50),
+# #     'prioritas': np.random.randint(1, 5, 50)
+# # })
 
-df.to_csv('dataset_irigasi_50_petak.csv', index=False)
-print("Dataset telah disimpan ke 'dataset_irigasi_50_petak.csv'")
+# df.to_csv('dataset_irigasi_50_petak.csv', index=False)
+# print("Dataset telah disimpan ke 'dataset_irigasi_50_petak.csv'")
 
-csp_data = df[['kabupaten', 'kebutuhan_jam', 'prioritas']]
-csp_data.to_csv('data_csp_irigasi.csv', index=False)
-print("Data CSP telah disimpan ke 'data_csp_irigasi.csv'")
+# csp_data = df[['kabupaten', 'kebutuhan_jam', 'prioritas']]
+# csp_data.to_csv('data_csp_irigasi.csv', index=False)
+# print("Data CSP telah disimpan ke 'data_csp_irigasi.csv'")
 
 
 # ==============================
@@ -102,17 +102,17 @@ def create_csp_model(csp):
 
 #  Contoh Penggunaan
 
-if __name__ == '__main__':
-    dataset = load_dataset(
-        'dataset_irigasi_50_petak.csv',
-        'data_csp_irigasi.csv'
-    )
+# if __name__ == '__main__':
+#     dataset = load_dataset(
+#         'dataset_irigasi_50_petak.csv',
+#         'data_csp_irigasi.csv'
+#     )
 
-    model = create_csp_model(dataset)
+#     model = create_csp_model(dataset)
 
-    print("Total variabel:", len(model['variables']))
-    print("Contoh domain:", model['domain'][model['variables'][0]])
-    print("Jumlah constraints:", len(model['constraints']))
+#     print("Total variabel:", len(model['variables']))
+#     print("Contoh domain:", model['domain'][model['variables'][0]])
+#     print("Jumlah constraints:", len(model['constraints']))
 
 # ================= BAGIAN 2 - ANGGOTA 2 =================  
 # Backtracking Basic
