@@ -226,13 +226,70 @@ def degree_heuristic():
 
 # ================= BAGIAN 4 - ANGGOTA 4 =================
 # Constraint Propagation  
-def forward_checking():
-    """Forward Checking"""
-    pass
+def forward_checking(csp, var, value, assignment):
+    """
+    Menghapus nilai domain yang tidak konsisten setelah var = value.
+    Jika domain suatu variabel menjadi kosong → return None (gagal).
+    """
+    # Copy domain asli
+    new_domains = {v: list(csp['domain'][v]) for v in csp['domain']}
 
-def ac3():
-    """AC-3 Algorithm"""
-    pass
+    # Set domain var jadi cuman value
+    new_domains[var] = [value]
+
+    # Cek constraint antar variabel
+    for (ctype, v1, v2, constraint_fn) in csp['constraints']:
+        # jika var = v1 → domain v2 dipersempit
+        if v1 == var and v2 not in assignment:
+            removed = []
+            for d2 in new_domains[v2]:
+                if not constraint_fn(v1, v2, value, d2):  
+                    removed.append(d2)
+            for r in removed:
+                new_domains[v2].remove(r)
+
+            if len(new_domains[v2]) == 0:
+                return None  # domain kosong → gagal
+
+        # misal: var = v2 → domain v1 dipersempit
+        if v2 == var and v1 not in assignment:
+            removed = []
+            for d1 in new_domains[v1]:
+                if not constraint_fn(v1, v2, d1, value):
+                    removed.append(d1)
+            for r in removed:
+                new_domains[v1].remove(r)
+
+            if len(new_domains[v1]) == 0:
+                return None
+
+    return new_domains
+
+# ====== AC-3 ======
+
+def revise(csp, xi, xj, fn):
+    revised = False
+    for x in csp['domain'][xi][:]:
+        if not any(fn(xi, xj, x, y) for y in csp['domain'][xj]):
+            csp['domain'][xi].remove(x)
+            revised = True
+    return revised
+
+def ac3(csp):
+    queue = deque()
+    for (ctype, v1, v2, fn) in csp['constraints']:
+        if ctype == 'provinsi_constraint':
+            queue.append((v1, v2, fn))
+
+    while queue:
+        xi, xj, fn = queue.popleft()
+        if revise(csp, xi, xj, fn):
+            if len(csp['domain'][xi]) == 0:
+                return False
+            for (ctype, v1, v2, fn2) in csp['constraints']:
+                if v2 == xi and v1 != xj:
+                    queue.append((v1, xi, fn2))
+    return True
 
 # ================= BAGIAN 5 - ANGGOTA 5 =================
 # Testing & Visualization
