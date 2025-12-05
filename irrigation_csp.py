@@ -278,13 +278,117 @@ def select_unassigned_variable(assignment, csp):
 
 # ================= BAGIAN 4 - ANGGOTA 4 =================
 # Constraint Propagation  
-def forward_checking():
-    """Forward Checking"""
-    pass
+def forward_checking(csp, var, value, assignment):
+    """
+    Forward Checking:
+    - Setelah var = value, kurangi domain variabel lain yang berkaitan
+    - Jika domain suatu variabel menjadi kosong → gagal
+    """
+    # Copy domain agar tidak merusak domain asli
+    new_domains = {v: list(csp['domain'][v]) for v in csp['domain']}
+    new_domains[var] = [value]
 
-def ac3():
-    """AC-3 Algorithm"""
-    pass
+    # Hanya evaluasi constraint biner: provinsi_constraint
+    for constraint in csp['constraints']:
+        if constraint[0] != "provinsi_constraint":
+            continue
+
+        _, v1, v2, fn = constraint
+
+        # Jika var adalah v1 → prune domain v2
+        if v1 == var and v2 not in assignment:
+            removed = []
+            for d2 in new_domains[v2]:
+                if not fn(v1, v2, value, d2):
+                    removed.append(d2)
+            for r in removed:
+                new_domains[v2].remove(r)
+            if len(new_domains[v2]) == 0:
+                return None
+
+        # Jika var adalah v2 → prune domain v1
+        if v2 == var and v1 not in assignment:
+            removed = []
+            for d1 in new_domains[v1]:
+                if not fn(v1, v2, d1, value):
+                    removed.append(d1)
+            for r in removed:
+                new_domains[v1].remove(r)
+            if len(new_domains[v1]) == 0:
+                return None
+
+    return new_domains
+
+
+
+# ============
+#   AC-3
+# ============
+
+def revise(csp, xi, xj, fn):
+    """
+    Revisi domain xi:
+    - Hilangkan nilai yang tidak punya pasangan konsisten di xj
+    """
+    revised = False
+    to_remove = []
+
+    for x in list(csp['domain'][xi]):
+        supported = False
+        for y in csp['domain'][xj]:
+            if fn(xi, xj, x, y):
+                supported = True
+                break
+        if not supported:
+            to_remove.append(x)
+
+    for x in to_remove:
+        csp['domain'][xi].remove(x)
+        revised = True
+
+    return revised
+
+
+
+def ac3(csp):
+    """
+    AC-3 tanpa deque (menggunakan list biasa sebagai queue).
+    """
+    queue = []
+
+    # Tambahkan arc yang bertipe provinsi_constraint
+    for constraint in csp['constraints']:
+        if constraint[0] == "provinsi_constraint":
+            _, v1, v2, fn = constraint
+            queue.append((v1, v2, fn))
+            queue.append((v2, v1, fn))  # reverse arc
+
+    # Proses queue
+    while queue:
+        xi, xj, fn = queue.pop(0)  # pop kiri
+
+        if revise(csp, xi, xj, fn):
+
+            # Jika domain kosong → CSP tidak valid
+            if len(csp['domain'][xi]) == 0:
+                return False
+
+            # Masukkan tetangga xi kembali ke queue (kecuali xj)
+            for constraint in csp['constraints']:
+                if constraint[0] != "provinsi_constraint":
+                    continue
+
+                _, v1, v2, fn2 = constraint
+
+                # xi berperan sebagai v2: tambah (v1 → xi)
+                if v2 == xi and v1 != xj:
+                    queue.append((v1, xi, fn2))
+
+                # xi berperan sebagai v1: tambah (v2 → xi)
+                if v1 == xi and v2 != xj:
+                    queue.append((v2, xi, fn2))
+
+    return True
 
 # ================= BAGIAN 5 - ANGGOTA 5 =================
 
