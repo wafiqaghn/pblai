@@ -1,6 +1,3 @@
-Berikut README versi siap **copy–paste** yang simpel, nada “anak Ilkom semester 5”:
-
----
 
 # **Irrigation CSP Solver**
 
