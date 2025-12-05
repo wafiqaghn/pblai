@@ -319,7 +319,12 @@ def forward_checking(csp, var, value, assignment):
 
     return new_domains
 
+
+
+# ============
 #   AC-3
+# ============
+
 def revise(csp, xi, xj, fn):
     """
     Revisi domain xi:
@@ -384,7 +389,6 @@ def ac3(csp):
                     queue.append((v2, xi, fn2))
 
     return True
-
 
 # ================= BAGIAN 5 - ANGGOTA 5 =================
 
