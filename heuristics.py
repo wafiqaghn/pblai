@@ -1,8 +1,7 @@
 def count_remaining_values(var, assignment, csp):
     """
     Menghitung jumlah nilai domain yang konsisten (Remaining Values) untuk variabel yang belum ditetapkan (var).
-    Memeriksa setiap nilai domain terhadap semua constraint (Kapasitas, Prioritas, Provinsi)
-    menggunakan fungsi is_consistent().
+    Memeriksa setiap nilai domain terhadap semua constraint menggunakan fungsi is_consistent().
     """
     count = 0
     # Mengambil daftar nilai domain yang mungkin untuk variabel 'var'
@@ -19,7 +18,7 @@ def get_degree(var, unassigned_vars, csp):
     dengan variabel lain yang masih berada di dalam list 'unassigned_vars'.
     """
     count = 0
-    # Hanya fokus pada constraint biner (Provinsi)
+    # Hanya fokus pada constraint biner antar-variabel (Provinsi)
     for constraint in csp['constraints']:
         if constraint[0] == 'provinsi_constraint':
             _, v1, v2, _ = constraint
@@ -42,8 +41,7 @@ def select_unassigned_variable(assignment, csp):
     if not unassigned_vars:
         return None
 
-    # 1. Hitung dan Cache MRV Counts
-    # Caching mencegah pemanggilan count_remaining_values berulang kali.
+    # 1. Hitung dan Cache MRV Counts (Efisiensi)
     mrv_counts = {var: count_remaining_values(var, assignment, csp) for var in unassigned_vars}
 
     # 2. Terapkan MRV: Cari variabel dengan nilai sisa minimum
@@ -55,6 +53,6 @@ def select_unassigned_variable(assignment, csp):
         return mrv_candidates[0]
 
     # 3. Terapkan Degree Heuristic (Pemutus Ikatan)
-    # Pilih dari kandidat MRV, variabel dengan degree maksimum (Most Constraining Variable).
+    # Pilih dari kandidat MRV, variabel dengan degree maksimum.
     return max(mrv_candidates, key=lambda var: get_degree(var, unassigned_vars, csp))
 
