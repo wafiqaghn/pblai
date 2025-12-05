@@ -1,9 +1,5 @@
 # irrigation_csp.py
 
-# File paths for dataset
-FILE_MAIN = 'dataset_irigasi_50_petak.csv'
-FILE_CSP = 'data_csp_irigasi.csv'
-
 import pandas as pd
 import numpy as np
 import copy
@@ -15,21 +11,25 @@ import matplotlib.patches as mpatches
 # ================= BAGIAN 1 - ANGGOTA 1 =================
 # Data & CSP Structure
 
-# np.random.seed(42)
+np.random.seed(42)
 
-# # df = pd.DataFrame({
-# #     'kabupaten': [f'Kabupaten_{i}' for i in range(1, 51)],
-# #     'provinsi': np.random.choice(['Provinsi A', 'Provinsi B', 'Provinsi C'], 50),
-# #     'kebutuhan_jam': np.random.randint(5, 20, 50),
-# #     'prioritas': np.random.randint(1, 5, 50)
-# # })
 
-# df.to_csv('dataset_irigasi_50_petak.csv', index=False)
-# print("Dataset telah disimpan ke 'dataset_irigasi_50_petak.csv'")
+# Kita buat 8 provinsi: 7 provinsi dengan 7 petak, 1 provinsi dengan 1 petak
+provinsi_list = ['Provinsi_1']*7 + ['Provinsi_2']*7 + ['Provinsi_3']*7 + ['Provinsi_4']*7 + ['Provinsi_5']*7 + ['Provinsi_6']*7 + ['Provinsi_7']*7 + ['Provinsi_8']*1
 
-# csp_data = df[['kabupaten', 'kebutuhan_jam', 'prioritas']]
-# csp_data.to_csv('data_csp_irigasi.csv', index=False)
-# print("Data CSP telah disimpan ke 'data_csp_irigasi.csv'")
+df = pd.DataFrame({
+    'kabupaten': [f'Kabupaten_{i}' for i in range(1, 51)],
+    'provinsi': provinsi_list,
+    'kebutuhan_jam': np.random.randint(5, 20, 50),
+    'prioritas': np.random.randint(1, 5, 50)
+})
+
+df.to_csv('dataset_irigasi_50_petak.csv', index=False)
+print("Dataset telah disimpan ke 'dataset_irigasi_50_petak.csv'")
+
+csp_data = df[['kabupaten', 'kebutuhan_jam', 'prioritas']]
+csp_data.to_csv('data_csp_irigasi.csv', index=False)
+print("Data CSP telah disimpan ke 'data_csp_irigasi.csv'")
 
 
 # ==============================
@@ -41,8 +41,9 @@ def load_dataset(path_main, path_csp):
     Membaca dataset irigasi dan menyiapkan struktur awal CSP.
     """
 
-    data_main = pd.read_csv("./dataset_irigasi_50_petak.csv")
-    data_csp  = pd.read_csv("./data_csp_irigasi.csv")
+    data_main = pd.read_csv(path_main)
+    data_csp  = pd.read_csv(path_csp)
+    
 
     # Variabel CSP: nama kabupaten (petak sawah)
     variables = list(data_csp['kabupaten'])
@@ -55,8 +56,6 @@ def load_dataset(path_main, path_csp):
     # Info kebutuhan dan prioritas
     kebutuhan = dict(zip(data_csp['kabupaten'], data_csp['kebutuhan_jam']))
     prioritas = dict(zip(data_csp['kabupaten'], data_csp['prioritas']))
-
-    # Provinsi tiap kabupaten (untuk constraint wilayah)
     provinsi = dict(zip(data_main['kabupaten'], data_main['provinsi']))
 
     return {
@@ -68,18 +67,14 @@ def load_dataset(path_main, path_csp):
     }
 
 
-# Fungsi Membuat Model CSP
-
 def create_csp_model(csp):
     """
     Membuat struktur model CSP berisi variabel, domain,
     dan daftar constraint dasar yang diperlukan.
     """
-
     variables = csp['variables']
     domain = csp['domain']
-    provinsi = csp['provinsi']
-
+    
     constraints = []
 
     # Constraint: setiap petak hanya boleh mendapat satu jadwal
@@ -88,7 +83,7 @@ def create_csp_model(csp):
 
     # Constraint: petak pada provinsi yang sama tidak boleh disiram di hari yang sama
     def provinsi_constraint(v1, v2, d1, d2):
-        if provinsi[v1] == provinsi[v2]:
+        if csp['provinsi'][v1] == csp['provinsi'][v2]:
             return d1 != d2
         return True
 
@@ -106,7 +101,11 @@ def create_csp_model(csp):
     return {
         'variables': variables,
         'domain': domain,
-        'constraints': constraints
+        'constraints': constraints,
+        'kebutuhan': csp['kebutuhan'],
+        'prioritas': csp['prioritas'],
+        'provinsi': csp['provinsi'],
+        'kapasitas_per_hari': 9999
     }
 
 # ================= BAGIAN 2 - ANGGOTA 2 =================  
@@ -144,14 +143,11 @@ def recursive_backtracking(assignment, csp):
 
             # optional inference (forward checking)
             if csp.get('inference') == 'forward_checking':
-                new_domains = forward_checking(csp, var, value, assignment)
-                if new_domains is None:
+                if forward_checking(csp, var, value, assignment) is None:
                     # gagal, undo assignment
                     del assignment[var]
                     csp['domain'] = saved_domains
                     continue
-                # update domains
-                csp['domain'] = new_domains
 
             # recursive call
             result = recursive_backtracking(assignment, csp)
@@ -225,7 +221,7 @@ def check_capacity_constraint(var, value, assignment, csp):
         if assigned_day == target_day:
             total_hours += csp['kebutuhan'][assigned_var]
     total_hours += csp['kebutuhan'][var]
-    return total_hours > csp.get('kapasitas_per_hari', 20)
+    return total_hours > csp.get('kapasitas_per_hari', 9999)
 
 
 def check_priority_constraint(var, value, assignment, csp):
@@ -442,6 +438,9 @@ def ac3(csp):
 # ================= BAGIAN 5 - ANGGOTA 5 =================
 # Testing & Visualization
 def run_experiments():
+    FILE_MAIN = 'dataset_irigasi_50_petak.csv'
+    FILE_CSP = 'data_csp_irigasi.csv'
+    
     try:
         dataset = load_dataset(FILE_MAIN, FILE_CSP)
         base_csp = create_csp_model(dataset)
