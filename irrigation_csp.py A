@@ -171,12 +171,6 @@ def is_consistent(var, value, assignment, csp):
                     return False
     return True
 
-def select_unassigned_variable(assignment, csp):
-    for var in csp['variables']:
-        if var not in assignment:
-            return var
-    return None
-
 def order_domain_values(var, assignment, csp):
     return list(csp['domain'][var])
 
@@ -224,79 +218,265 @@ def degree_heuristic():
     """Degree Heuristic"""
     pass
 
+def count_remaining_values(var, assignment, csp):
+    """
+    Menghitung jumlah nilai domain yang konsisten (Remaining Values) untuk variabel yang belum ditetapkan (var).
+    Memeriksa setiap nilai domain terhadap semua constraint menggunakan fungsi is_consistent().
+    """
+    count = 0
+    # Mengambil daftar nilai domain yang mungkin untuk variabel 'var'
+    for value in csp['domain'][var]:
+        # Menggunakan is_consistent (yang harus didefinisikan di Bagian 2)
+        if is_consistent(var, value, assignment, csp):
+            count += 1
+    return count
+
+
+def get_degree(var, unassigned_vars, csp):
+    """
+    Degree Heuristic: Menghitung jumlah constraint BINER ('provinsi_constraint') yang melibatkan 'var'
+    dengan variabel lain yang masih berada di dalam list 'unassigned_vars'.
+    """
+    count = 0
+    # Hanya fokus pada constraint biner antar-variabel (Provinsi)
+    for constraint in csp['constraints']:
+        if constraint[0] == 'provinsi_constraint':
+            _, v1, v2, _ = constraint
+
+            # Cek apakah 'var' terlibat dengan variabel lain yang belum ditetapkan
+            if var == v1 and v2 in unassigned_vars:
+                count += 1
+            elif var == v2 and v1 in unassigned_vars:
+                count += 1
+    return count
+
+
+def select_unassigned_variable(assignment, csp):
+    """
+    Selects the next unassigned variable using MRV (Minimum Remaining Values)
+    with Degree Heuristic as a tie-breaker.
+    """
+    unassigned_vars = [var for var in csp['variables'] if var not in assignment]
+
+    if not unassigned_vars:
+        return None
+
+    # 1. Hitung dan Cache MRV Counts (Efisiensi)
+    mrv_counts = {var: count_remaining_values(var, assignment, csp) for var in unassigned_vars}
+
+    # 2. Terapkan MRV: Cari variabel dengan nilai sisa minimum
+    min_mrv = min(mrv_counts.values())
+    mrv_candidates = [var for var, count in mrv_counts.items() if count == min_mrv]
+
+    if len(mrv_candidates) == 1:
+        # Tidak ada ikatan
+        return mrv_candidates[0]
+
+    # 3. Terapkan Degree Heuristic (Pemutus Ikatan)
+    # Pilih dari kandidat MRV, variabel dengan degree maksimum.
+    return max(mrv_candidates, key=lambda var: get_degree(var, unassigned_vars, csp))
+
 # ================= BAGIAN 4 - ANGGOTA 4 =================
 # Constraint Propagation  
 def forward_checking(csp, var, value, assignment):
     """
-    Menghapus nilai domain yang tidak konsisten setelah var = value.
-    Jika domain suatu variabel menjadi kosong → return None (gagal).
+    Forward Checking:
+    - Setelah var = value, kurangi domain variabel lain yang berkaitan
+    - Jika domain suatu variabel menjadi kosong → gagal
     """
-    # Copy domain asli
+    # Copy domain agar tidak merusak domain asli
     new_domains = {v: list(csp['domain'][v]) for v in csp['domain']}
-
-    # Set domain var jadi cuman value
     new_domains[var] = [value]
 
-    # Cek constraint antar variabel
-    for (ctype, v1, v2, constraint_fn) in csp['constraints']:
-        # jika var = v1 → domain v2 dipersempit
+    # Hanya evaluasi constraint biner: provinsi_constraint
+    for constraint in csp['constraints']:
+        if constraint[0] != "provinsi_constraint":
+            continue
+
+        _, v1, v2, fn = constraint
+
+        # Jika var adalah v1 → prune domain v2
         if v1 == var and v2 not in assignment:
             removed = []
             for d2 in new_domains[v2]:
-                if not constraint_fn(v1, v2, value, d2):  
+                if not fn(v1, v2, value, d2):
                     removed.append(d2)
             for r in removed:
                 new_domains[v2].remove(r)
-
             if len(new_domains[v2]) == 0:
-                return None  # domain kosong → gagal
+                return None
 
-        # misal: var = v2 → domain v1 dipersempit
+        # Jika var adalah v2 → prune domain v1
         if v2 == var and v1 not in assignment:
             removed = []
             for d1 in new_domains[v1]:
-                if not constraint_fn(v1, v2, d1, value):
+                if not fn(v1, v2, d1, value):
                     removed.append(d1)
             for r in removed:
                 new_domains[v1].remove(r)
-
             if len(new_domains[v1]) == 0:
                 return None
 
     return new_domains
 
-# ====== AC-3 ======
-
+#   AC-3
 def revise(csp, xi, xj, fn):
+    """
+    Revisi domain xi:
+    - Hilangkan nilai yang tidak punya pasangan konsisten di xj
+    """
     revised = False
-    for x in csp['domain'][xi][:]:
-        if not any(fn(xi, xj, x, y) for y in csp['domain'][xj]):
-            csp['domain'][xi].remove(x)
-            revised = True
+    to_remove = []
+
+    for x in list(csp['domain'][xi]):
+        supported = False
+        for y in csp['domain'][xj]:
+            if fn(xi, xj, x, y):
+                supported = True
+                break
+        if not supported:
+            to_remove.append(x)
+
+    for x in to_remove:
+        csp['domain'][xi].remove(x)
+        revised = True
+
     return revised
 
-def ac3(csp):
-    queue = deque()
-    for (ctype, v1, v2, fn) in csp['constraints']:
-        if ctype == 'provinsi_constraint':
-            queue.append((v1, v2, fn))
 
+
+def ac3(csp):
+    """
+    AC-3 tanpa deque (menggunakan list biasa sebagai queue).
+    """
+    queue = []
+
+    # Tambahkan arc yang bertipe provinsi_constraint
+    for constraint in csp['constraints']:
+        if constraint[0] == "provinsi_constraint":
+            _, v1, v2, fn = constraint
+            queue.append((v1, v2, fn))
+            queue.append((v2, v1, fn))  # reverse arc
+
+    # Proses queue
     while queue:
-        xi, xj, fn = queue.popleft()
+        xi, xj, fn = queue.pop(0)  # pop kiri
+
         if revise(csp, xi, xj, fn):
+
+            # Jika domain kosong → CSP tidak valid
             if len(csp['domain'][xi]) == 0:
                 return False
-            for (ctype, v1, v2, fn2) in csp['constraints']:
+
+            # Masukkan tetangga xi kembali ke queue (kecuali xj)
+            for constraint in csp['constraints']:
+                if constraint[0] != "provinsi_constraint":
+                    continue
+
+                _, v1, v2, fn2 = constraint
+
+                # xi berperan sebagai v2: tambah (v1 → xi)
                 if v2 == xi and v1 != xj:
                     queue.append((v1, xi, fn2))
+
+                # xi berperan sebagai v1: tambah (v2 → xi)
+                if v1 == xi and v2 != xj:
+                    queue.append((v2, xi, fn2))
+
     return True
 
+
 # ================= BAGIAN 5 - ANGGOTA 5 =================
+
+import copy
+import time
+import matplotlib.pyplot as plt
+import seaborn as sns
+import matplotlib.patches as mpatches
+
+# File paths for dataset
+FILE_MAIN = 'dataset_irigasi_50_petak.csv'
+FILE_CSP = 'data_csp_irigasi.csv'
+
 # Testing & Visualization
 def run_experiments():
-    """Uji berbagai skenario"""
-    pass
+    # Load Data
+    try:
+        dataset = load_dataset(FILE_MAIN, FILE_CSP)
+        if dataset is None: return
+        base_csp = create_csp_model(dataset)
+        # Merge required keys for constraint checking
+        base_csp['kebutuhan'] = dataset['kebutuhan']
+        base_csp['prioritas'] = dataset['prioritas']
+        base_csp['provinsi'] = dataset['provinsi']
+    except Exception as e:
+        print(f"Error loading dataset: {e}")
+        return
 
-def visualize_results():
-    """Visualisasi jadwal"""
-    pass
+    scenarios = [
+        {"name": "BT + MRV", "inference": None},
+        # TODO: Enable after forward_checking is implemented
+        # {"name": "BT + MRV + FC", "inference": "forward_checking"}
+    ]
+    
+    results = []
+    best_solution = None
+    
+    for scenario in scenarios:
+        csp_run = copy.deepcopy(base_csp)
+        csp_run['inference'] = scenario['inference']
+        
+        start = time.time()
+        solution = backtracking_search(csp_run)
+        duration = time.time() - start
+        
+        success = solution is not None and len(solution) == len(base_csp['variables'])
+        
+        results.append({
+            "Algoritma": scenario['name'],
+            "Waktu (s)": round(duration, 4),
+            "Status": "Berhasil" if success else "Gagal",
+            "Terjadwal": f"{len(solution) if solution else 0}/{len(base_csp['variables'])}"
+        })
+        
+        if success and scenario['inference'] == 'forward_checking':
+            best_solution = solution
+
+    print(pd.DataFrame(results).to_string(index=False))
+    
+    if best_solution:
+        visualize_results(best_solution, base_csp)
+
+def visualize_results(assignment, csp):
+    if not assignment:
+        return
+
+    days = ['Hari_1', 'Hari_2', 'Hari_3', 'Hari_4', 'Hari_5', 'Hari_6', 'Hari_7']
+    sorted_vars = sorted(assignment.keys(), key=lambda k: (csp['provinsi'].get(k, ''), -csp['prioritas'].get(k, 0)))
+    
+    matrix = []
+    labels = []
+    
+    for var in sorted_vars:
+        prio = csp['prioritas'].get(var, 0)
+        day_assigned = assignment[var]
+        matrix.append([prio if d == day_assigned else 0 for d in days])
+        labels.append(f"{var} ({csp['provinsi'][var]})")
+
+    plt.figure(figsize=(10, 12))
+    cmap = sns.color_palette(["#f7f7f7", "#ccece6", "#66c2a4", "#2ca25f", "#006d2c"])
+    sns.heatmap(matrix, cmap=cmap, linewidths=0.5, linecolor='lightgray', xticklabels=days, yticklabels=labels, cbar=False)
+    
+    legend_elements = [
+        mpatches.Patch(facecolor='#ccece6', label='Prioritas 1'),
+        mpatches.Patch(facecolor='#66c2a4', label='Prioritas 2'),
+        mpatches.Patch(facecolor='#2ca25f', label='Prioritas 3'),
+        mpatches.Patch(facecolor='#006d2c', label='Prioritas 4')
+    ]
+    plt.legend(handles=legend_elements, loc='upper left', bbox_to_anchor=(1, 1))
+    plt.title('Jadwal Irigasi Optimal')
+    plt.tight_layout()
+    plt.show()
+
+if __name__ == '__main__':
+    run_experiments()
