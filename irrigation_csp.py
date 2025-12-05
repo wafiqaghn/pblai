@@ -41,8 +41,8 @@ def load_dataset(path_main, path_csp):
     Membaca dataset irigasi dan menyiapkan struktur awal CSP.
     """
 
-    data_main = pd.read_csv(path_main)
-    data_csp = pd.read_csv(path_csp)
+    data_main = pd.read_csv("./dataset_irigasi_50_petak.csv")
+    data_csp  = pd.read_csv("./data_csp_irigasi.csv")
 
     # Variabel CSP: nama kabupaten (petak sawah)
     variables = list(data_csp['kabupaten'])
