@@ -109,61 +109,73 @@ def create_csp_model(csp):
         'constraints': constraints
     }
 
-
-#  Contoh Penggunaan
-
-# if __name__ == '__main__':
-#     dataset = load_dataset(
-#         'dataset_irigasi_50_petak.csv',
-#         'data_csp_irigasi.csv'
-#     )
-
-#     model = create_csp_model(dataset)
-
-#     print("Total variabel:", len(model['variables']))
-#     print("Contoh domain:", model['domain'][model['variables'][0]])
-#     print("Jumlah constraints:", len(model['constraints']))
-
 # ================= BAGIAN 2 - ANGGOTA 2 =================  
-
 # Backtracking Algorithm
+
 def backtracking_search(csp):
+    """
+    Memulai pencarian solusi CSP menggunakan algoritma backtracking.
+    """
     return recursive_backtracking({}, csp)
 
+
 def recursive_backtracking(assignment, csp):
+    """
+    Fungsi rekursif untuk melakukan pencarian backtracking.
+    - Mencoba nilai domain untuk variabel yang belum ter-assign.
+    - Mengecek konsistensi dengan constraint.
+    - Menggunakan inference (forward checking) jika diaktifkan.
+    """
     if is_complete_assignment(assignment, csp):
         return assignment
-    
+
     var = select_unassigned_variable(assignment, csp)
-    
+    if var is None:
+        return None
+
+    # Coba setiap nilai domain  
     for value in order_domain_values(var, assignment, csp):
         if is_consistent(var, value, assignment, csp):
+            # assign
             assignment[var] = value
-            
-            inferences = {}
+
+            # Backup domain sebelum inference
+            saved_domains = {v: list(csp['domain'][v]) for v in csp['domain']}
+
+            # optional inference (forward checking)
             if csp.get('inference') == 'forward_checking':
-                inferences = forward_checking(csp, var, value, assignment)
-                if inferences is None:
+                new_domains = forward_checking(csp, var, value, assignment)
+                if new_domains is None:
+                    # gagal, undo assignment
                     del assignment[var]
+                    csp['domain'] = saved_domains
                     continue
-                assignment.update(inferences)
-            
+                # update domains
+                csp['domain'] = new_domains
+
+            # recursive call
             result = recursive_backtracking(assignment, csp)
             if result is not None:
                 return result
-            
+
+            # undo assignment dan restore domains
             del assignment[var]
-            if inferences:
-                for inf_var in list(inferences.keys()):
-                    if inf_var in assignment:
-                        del assignment[inf_var]
-    
+            csp['domain'] = saved_domains
+
     return None
 
+
 def is_complete_assignment(assignment, csp):
+    """
+    Mengecek apakah semua variabel sudah mendapat assignment.
+    """
     return len(assignment) == len(csp['variables'])
 
+
 def is_consistent(var, value, assignment, csp):
+    """
+    Mengecek apakah assignment var=value konsisten dengan semua constraint.
+    """
     if check_capacity_constraint(var, value, assignment, csp):
         return False
     if check_priority_constraint(var, value, assignment, csp):
@@ -181,10 +193,18 @@ def is_consistent(var, value, assignment, csp):
                     return False
     return True
 
+
 def order_domain_values(var, assignment, csp):
+    """
+    Mengembalikan daftar nilai domain untuk variabel tertentu.
+    """
     return list(csp['domain'][var])
 
+
 def _day_to_index(day_str):
+    """
+    Mengubah string 'Hari_X' menjadi indeks integer X.
+    """
     if isinstance(day_str, (int, np.integer)):
         return int(day_str)
     if isinstance(day_str, str) and day_str.startswith('Hari_'):
@@ -194,7 +214,11 @@ def _day_to_index(day_str):
             return None
     return None
 
+
 def check_capacity_constraint(var, value, assignment, csp):
+    """
+    Mengecek apakah total jam kebutuhan di hari tertentu melebihi kapasitas.
+    """
     target_day = value
     total_hours = 0
     for assigned_var, assigned_day in assignment.items():
@@ -203,14 +227,22 @@ def check_capacity_constraint(var, value, assignment, csp):
     total_hours += csp['kebutuhan'][var]
     return total_hours > csp.get('kapasitas_per_hari', 20)
 
+
 def check_priority_constraint(var, value, assignment, csp):
+    """
+    Mengecek apakah petak dengan prioritas tinggi ditempatkan di hari awal.
+    """
     prioritas = csp['prioritas'][var]
     day_idx = _day_to_index(value)
     if prioritas >= 4 and day_idx is not None and day_idx > 3:
         return True
     return False
 
+
 def check_additional_constraints(var, value, assignment, csp):
+    """
+    Mengecek constraint tambahan: petak dari provinsi sama tidak boleh di hari sama.
+    """
     if 'provinsi' in csp:
         provinsi_var = csp['provinsi'][var]
         for assigned_var, assigned_day in assignment.items():
