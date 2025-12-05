@@ -171,12 +171,6 @@ def is_consistent(var, value, assignment, csp):
                     return False
     return True
 
-def select_unassigned_variable(assignment, csp):
-    for var in csp['variables']:
-        if var not in assignment:
-            return var
-    return None
-
 def order_domain_values(var, assignment, csp):
     return list(csp['domain'][var])
 
@@ -293,6 +287,17 @@ def ac3():
     pass
 
 # ================= BAGIAN 5 - ANGGOTA 5 =================
+
+import copy
+import time
+import matplotlib.pyplot as plt
+import seaborn as sns
+import matplotlib.patches as mpatches
+
+# File paths for dataset
+FILE_MAIN = 'dataset_irigasi_50_petak.csv'
+FILE_CSP = 'data_csp_irigasi.csv'
+
 # Testing & Visualization
 def run_experiments():
     # Load Data
@@ -300,7 +305,8 @@ def run_experiments():
         dataset = load_dataset(FILE_MAIN, FILE_CSP)
         if dataset is None: return
         base_csp = create_csp_model(dataset)
-    except Exception:
+    except Exception as e:
+        print(f"Error loading dataset: {e}")
         return
 
     scenarios = [
@@ -337,7 +343,8 @@ def run_experiments():
         visualize_results(best_solution, base_csp)
 
 def visualize_results(assignment, csp):
-    if not assignment: return
+    if not assignment:
+        return
 
     days = ['Hari_1', 'Hari_2', 'Hari_3', 'Hari_4', 'Hari_5', 'Hari_6', 'Hari_7']
     sorted_vars = sorted(assignment.keys(), key=lambda k: (csp['provinsi'].get(k, ''), -csp['prioritas'].get(k, 0)))
