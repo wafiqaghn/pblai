@@ -327,7 +327,15 @@ def forward_checking(csp, var, value, assignment):
             if len(new_domains[v1]) == 0:
                 return None
 
-    return new_domains
+    # Perbarui domain CSP dengan pruned values
+    for v in new_domains:
+        csp['domain'][v] = new_domains[v]
+    # Return hanya variabel yg forced jadi single values
+    forced = {}
+    for v, domain in new_domains.items():
+        if len(domain) == 1 and v not in assignment and v != var:
+            forced[v] = domain[0]
+    return forced
 
 
 
@@ -454,7 +462,7 @@ def visualize_results(assignment, csp):
         return
 
     days = ['Hari_1', 'Hari_2', 'Hari_3', 'Hari_4', 'Hari_5', 'Hari_6', 'Hari_7']
-    # Sorting: Group by Provinsi, then Priority Descending
+    # Sorting: Group by Provinsi, dan Priority Descending
     sorted_vars = sorted(assignment.keys(), key=lambda k: (csp['provinsi'].get(k, ''), -csp['prioritas'].get(k, 0)))
     
     matrix = []
