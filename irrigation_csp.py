@@ -336,6 +336,7 @@ def forward_checking(csp, var, value, assignment):
         if len(domain) == 1 and v not in assignment and v != var:
             forced[v] = domain[0]
     return forced
+    return new_domains
 
 
 
@@ -350,6 +351,63 @@ def revise(csp, xi, xj, fn):
     """
     revised = False
     to_remove = []
+
+    for x in list(csp['domain'][xi]):
+        supported = False
+        for y in csp['domain'][xj]:
+            if fn(xi, xj, x, y):
+                supported = True
+                break
+        if not supported:
+            to_remove.append(x)
+
+    for x in to_remove:
+        csp['domain'][xi].remove(x)
+        revised = True
+
+    return revised
+
+
+
+def ac3(csp):
+    """
+    AC-3 tanpa deque (menggunakan list biasa sebagai queue).
+    """
+    queue = []
+
+    # Tambahkan arc yang bertipe provinsi_constraint
+    for constraint in csp['constraints']:
+        if constraint[0] == "provinsi_constraint":
+            _, v1, v2, fn = constraint
+            queue.append((v1, v2, fn))
+            queue.append((v2, v1, fn))  # reverse arc
+
+    # Proses queue
+    while queue:
+        xi, xj, fn = queue.pop(0)  # pop kiri
+
+        if revise(csp, xi, xj, fn):
+
+            # Jika domain kosong → CSP tidak valid
+            if len(csp['domain'][xi]) == 0:
+                return False
+
+            # Masukkan tetangga xi kembali ke queue (kecuali xj)
+            for constraint in csp['constraints']:
+                if constraint[0] != "provinsi_constraint":
+                    continue
+
+                _, v1, v2, fn2 = constraint
+
+                # xi berperan sebagai v2: tambah (v1 → xi)
+                if v2 == xi and v1 != xj:
+                    queue.append((v1, xi, fn2))
+
+                # xi berperan sebagai v1: tambah (v2 → xi)
+                if v1 == xi and v2 != xj:
+                    queue.append((v2, xi, fn2))
+
+    return True
 
     for x in list(csp['domain'][xi]):
         supported = False
