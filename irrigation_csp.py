@@ -237,9 +237,76 @@ def ac3():
 # ================= BAGIAN 5 - ANGGOTA 5 =================
 # Testing & Visualization
 def run_experiments():
-    """Uji berbagai skenario"""
-    pass
+    # Load Data
+    try:
+        dataset = load_dataset(FILE_MAIN, FILE_CSP)
+        if dataset is None: return
+        base_csp = create_csp_model(dataset)
+    except Exception:
+        return
 
-def visualize_results():
-    """Visualisasi jadwal"""
-    pass
+    scenarios = [
+        {"name": "BT + MRV", "inference": None},
+        {"name": "BT + MRV + FC", "inference": "forward_checking"}
+    ]
+    
+    results = []
+    best_solution = None
+    
+    for scenario in scenarios:
+        csp_run = copy.deepcopy(base_csp)
+        csp_run['inference'] = scenario['inference']
+        
+        start = time.time()
+        solution = backtracking_search(csp_run)
+        duration = time.time() - start
+        
+        success = solution is not None and len(solution) == len(base_csp['variables'])
+        
+        results.append({
+            "Algoritma": scenario['name'],
+            "Waktu (s)": round(duration, 4),
+            "Status": "Berhasil" if success else "Gagal",
+            "Terjadwal": f"{len(solution) if solution else 0}/{len(base_csp['variables'])}"
+        })
+        
+        if success and scenario['inference'] == 'forward_checking':
+            best_solution = solution
+
+    print(pd.DataFrame(results).to_string(index=False))
+    
+    if best_solution:
+        visualize_results(best_solution, base_csp)
+
+def visualize_results(assignment, csp):
+    if not assignment: return
+
+    days = ['Hari_1', 'Hari_2', 'Hari_3', 'Hari_4', 'Hari_5', 'Hari_6', 'Hari_7']
+    sorted_vars = sorted(assignment.keys(), key=lambda k: (csp['provinsi'].get(k, ''), -csp['prioritas'].get(k, 0)))
+    
+    matrix = []
+    labels = []
+    
+    for var in sorted_vars:
+        prio = csp['prioritas'].get(var, 0)
+        day_assigned = assignment[var]
+        matrix.append([prio if d == day_assigned else 0 for d in days])
+        labels.append(f"{var} ({csp['provinsi'][var]})")
+
+    plt.figure(figsize=(10, 12))
+    cmap = sns.color_palette(["#f7f7f7", "#ccece6", "#66c2a4", "#2ca25f", "#006d2c"])
+    sns.heatmap(matrix, cmap=cmap, linewidths=0.5, linecolor='lightgray', xticklabels=days, yticklabels=labels, cbar=False)
+    
+    legend_elements = [
+        mpatches.Patch(facecolor='#ccece6', label='Prioritas 1'),
+        mpatches.Patch(facecolor='#66c2a4', label='Prioritas 2'),
+        mpatches.Patch(facecolor='#2ca25f', label='Prioritas 3'),
+        mpatches.Patch(facecolor='#006d2c', label='Prioritas 4')
+    ]
+    plt.legend(handles=legend_elements, loc='upper left', bbox_to_anchor=(1, 1))
+    plt.title('Jadwal Irigasi Optimal')
+    plt.tight_layout()
+    plt.show()
+
+if __name__ == '__main__':
+    run_experiments()
