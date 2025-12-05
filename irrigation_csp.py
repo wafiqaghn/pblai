@@ -409,73 +409,15 @@ def ac3(csp):
 
     return True
 
-    for x in list(csp['domain'][xi]):
-        supported = False
-        for y in csp['domain'][xj]:
-            if fn(xi, xj, x, y):
-                supported = True
-                break
-        if not supported:
-            to_remove.append(x)
-
-    for x in to_remove:
-        csp['domain'][xi].remove(x)
-        revised = True
-
-    return revised
-
-
-
-def ac3(csp):
-    """
-    AC-3 tanpa deque (menggunakan list biasa sebagai queue).
-    """
-    queue = []
-
-    # Tambahkan arc yang bertipe provinsi_constraint
-    for constraint in csp['constraints']:
-        if constraint[0] == "provinsi_constraint":
-            _, v1, v2, fn = constraint
-            queue.append((v1, v2, fn))
-            queue.append((v2, v1, fn))  # reverse arc
-
-    # Proses queue
-    while queue:
-        xi, xj, fn = queue.pop(0)  # pop kiri
-
-        if revise(csp, xi, xj, fn):
-
-            # Jika domain kosong → CSP tidak valid
-            if len(csp['domain'][xi]) == 0:
-                return False
-
-            # Masukkan tetangga xi kembali ke queue (kecuali xj)
-            for constraint in csp['constraints']:
-                if constraint[0] != "provinsi_constraint":
-                    continue
-
-                _, v1, v2, fn2 = constraint
-
-                # xi berperan sebagai v2: tambah (v1 → xi)
-                if v2 == xi and v1 != xj:
-                    queue.append((v1, xi, fn2))
-
-                # xi berperan sebagai v1: tambah (v2 → xi)
-                if v1 == xi and v2 != xj:
-                    queue.append((v2, xi, fn2))
-
-    return True
-
 # ================= BAGIAN 5 - ANGGOTA 5 =================
 # Testing & Visualization
 def run_experiments():
     try:
         dataset = load_dataset(FILE_MAIN, FILE_CSP)
-        if dataset is None: return
         base_csp = create_csp_model(dataset)
         print(f"Dataset Loaded: {len(base_csp['variables'])} Petak.")
-    except Exception as e:
-        print(f"Error: {e}")
+    except (FileNotFoundError, pd.errors.EmptyDataError) as e:
+        print(f"Error saat membaca dataset: {e}")
         return
 
     scenarios = [
