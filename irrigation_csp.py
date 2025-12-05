@@ -1,9 +1,19 @@
 # irrigation_csp.py
-# ================= BAGIAN 1 - ANGGOTA 1 =================
-# Data & CSP Structure
+
+# File paths for dataset
+FILE_MAIN = 'dataset_irigasi_50_petak.csv'
+FILE_CSP = 'data_csp_irigasi.csv'
+
 import pandas as pd
 import numpy as np
+import copy
+import time
+import matplotlib.pyplot as plt
+import seaborn as sns
+import matplotlib.patches as mpatches
 
+# ================= BAGIAN 1 - ANGGOTA 1 =================
+# Data & CSP Structure
 
 # np.random.seed(42)
 
@@ -317,8 +327,15 @@ def forward_checking(csp, var, value, assignment):
             if len(new_domains[v1]) == 0:
                 return None
 
-    return new_domains
-
+    # Perbarui domain CSP dengan pruned values
+    for v in new_domains:
+        csp['domain'][v] = new_domains[v]
+    # Return hanya variabel yg forced jadi single values
+    forced = {}
+    for v, domain in new_domains.items():
+        if len(domain) == 1 and v not in assignment and v != var:
+            forced[v] = domain[0]
+    return forced
 
 
 # ============
@@ -391,42 +408,26 @@ def ac3(csp):
     return True
 
 # ================= BAGIAN 5 - ANGGOTA 5 =================
-
-import copy
-import time
-import matplotlib.pyplot as plt
-import seaborn as sns
-import matplotlib.patches as mpatches
-
-# File paths for dataset
-FILE_MAIN = 'dataset_irigasi_50_petak.csv'
-FILE_CSP = 'data_csp_irigasi.csv'
-
 # Testing & Visualization
 def run_experiments():
-    # Load Data
     try:
         dataset = load_dataset(FILE_MAIN, FILE_CSP)
-        if dataset is None: return
         base_csp = create_csp_model(dataset)
-        # Merge required keys for constraint checking
-        base_csp['kebutuhan'] = dataset['kebutuhan']
-        base_csp['prioritas'] = dataset['prioritas']
-        base_csp['provinsi'] = dataset['provinsi']
-    except Exception as e:
-        print(f"Error loading dataset: {e}")
+        print(f"Dataset Loaded: {len(base_csp['variables'])} Petak.")
+    except (FileNotFoundError, pd.errors.EmptyDataError) as e:
+        print(f"Error saat membaca dataset: {e}")
         return
 
     scenarios = [
         {"name": "BT + MRV", "inference": None},
-        # TODO: Enable after forward_checking is implemented
-        # {"name": "BT + MRV + FC", "inference": "forward_checking"}
+        {"name": "BT + MRV + FC", "inference": "forward_checking"}
     ]
     
     results = []
     best_solution = None
     
     for scenario in scenarios:
+        print(f"Running: {scenario['name']}...")
         csp_run = copy.deepcopy(base_csp)
         csp_run['inference'] = scenario['inference']
         
@@ -446,16 +447,20 @@ def run_experiments():
         if success and scenario['inference'] == 'forward_checking':
             best_solution = solution
 
+    print("\n=== HASIL EKSPERIMEN ===")
     print(pd.DataFrame(results).to_string(index=False))
     
     if best_solution:
         visualize_results(best_solution, base_csp)
+    else:
+        print("Solusi tidak ditemukan, visualisasi dilewati.")
 
 def visualize_results(assignment, csp):
     if not assignment:
         return
 
     days = ['Hari_1', 'Hari_2', 'Hari_3', 'Hari_4', 'Hari_5', 'Hari_6', 'Hari_7']
+    # Sorting: Group by Provinsi, dan Priority Descending
     sorted_vars = sorted(assignment.keys(), key=lambda k: (csp['provinsi'].get(k, ''), -csp['prioritas'].get(k, 0)))
     
     matrix = []
@@ -469,7 +474,8 @@ def visualize_results(assignment, csp):
 
     plt.figure(figsize=(10, 12))
     cmap = sns.color_palette(["#f7f7f7", "#ccece6", "#66c2a4", "#2ca25f", "#006d2c"])
-    sns.heatmap(matrix, cmap=cmap, linewidths=0.5, linecolor='lightgray', xticklabels=days, yticklabels=labels, cbar=False)
+    sns.heatmap(matrix, cmap=cmap, linewidths=0.5, linecolor='lightgray', 
+                xticklabels=days, yticklabels=labels, cbar=False)
     
     legend_elements = [
         mpatches.Patch(facecolor='#ccece6', label='Prioritas 1'),
@@ -478,7 +484,7 @@ def visualize_results(assignment, csp):
         mpatches.Patch(facecolor='#006d2c', label='Prioritas 4')
     ]
     plt.legend(handles=legend_elements, loc='upper left', bbox_to_anchor=(1, 1))
-    plt.title('Jadwal Irigasi Optimal')
+    plt.title('Jadwal Irigasi Optimal (Heatmap)')
     plt.tight_layout()
     plt.show()
 
