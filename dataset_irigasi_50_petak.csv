@@ -1,51 +1,51 @@
 kabupaten,provinsi,kebutuhan_jam,prioritas
-Kabupaten_1,Provinsi C,14,3
-Kabupaten_2,Provinsi A,13,1
-Kabupaten_3,Provinsi C,14,4
-Kabupaten_4,Provinsi C,9,2
-Kabupaten_5,Provinsi A,6,1
-Kabupaten_6,Provinsi A,8,4
-Kabupaten_7,Provinsi C,16,4
-Kabupaten_8,Provinsi B,19,4
-Kabupaten_9,Provinsi C,16,1
-Kabupaten_10,Provinsi C,11,1
-Kabupaten_11,Provinsi C,16,1
-Kabupaten_12,Provinsi C,17,3
-Kabupaten_13,Provinsi A,12,1
-Kabupaten_14,Provinsi C,19,1
-Kabupaten_15,Provinsi B,7,1
-Kabupaten_16,Provinsi A,18,3
-Kabupaten_17,Provinsi B,5,1
-Kabupaten_18,Provinsi B,8,4
-Kabupaten_19,Provinsi B,6,1
-Kabupaten_20,Provinsi B,12,4
-Kabupaten_21,Provinsi A,8,4
-Kabupaten_22,Provinsi A,6,4
-Kabupaten_23,Provinsi B,18,3
-Kabupaten_24,Provinsi B,10,3
-Kabupaten_25,Provinsi A,10,3
-Kabupaten_26,Provinsi A,14,1
-Kabupaten_27,Provinsi A,8,4
-Kabupaten_28,Provinsi C,10,3
-Kabupaten_29,Provinsi C,17,3
-Kabupaten_30,Provinsi C,19,1
-Kabupaten_31,Provinsi B,6,3
-Kabupaten_32,Provinsi C,14,1
-Kabupaten_33,Provinsi B,16,2
-Kabupaten_34,Provinsi B,6,3
-Kabupaten_35,Provinsi C,14,2
-Kabupaten_36,Provinsi B,18,1
-Kabupaten_37,Provinsi C,8,4
-Kabupaten_38,Provinsi C,18,3
-Kabupaten_39,Provinsi A,19,1
-Kabupaten_40,Provinsi C,19,4
-Kabupaten_41,Provinsi A,12,4
-Kabupaten_42,Provinsi C,18,2
-Kabupaten_43,Provinsi C,11,1
-Kabupaten_44,Provinsi A,16,4
-Kabupaten_45,Provinsi A,13,3
-Kabupaten_46,Provinsi C,18,3
-Kabupaten_47,Provinsi B,12,2
-Kabupaten_48,Provinsi A,9,4
-Kabupaten_49,Provinsi B,17,1
-Kabupaten_50,Provinsi B,6,3
+Kabupaten_1,Provinsi_1,11,4
+Kabupaten_2,Provinsi_1,8,3
+Kabupaten_3,Provinsi_1,17,4
+Kabupaten_4,Provinsi_1,19,4
+Kabupaten_5,Provinsi_1,15,1
+Kabupaten_6,Provinsi_1,12,3
+Kabupaten_7,Provinsi_1,17,1
+Kabupaten_8,Provinsi_2,9,3
+Kabupaten_9,Provinsi_2,11,3
+Kabupaten_10,Provinsi_2,14,1
+Kabupaten_11,Provinsi_2,7,1
+Kabupaten_12,Provinsi_2,11,3
+Kabupaten_13,Provinsi_2,15,2
+Kabupaten_14,Provinsi_2,15,4
+Kabupaten_15,Provinsi_3,12,1
+Kabupaten_16,Provinsi_3,9,4
+Kabupaten_17,Provinsi_3,8,2
+Kabupaten_18,Provinsi_3,12,2
+Kabupaten_19,Provinsi_3,12,2
+Kabupaten_20,Provinsi_3,7,1
+Kabupaten_21,Provinsi_3,10,2
+Kabupaten_22,Provinsi_4,9,1
+Kabupaten_23,Provinsi_4,6,2
+Kabupaten_24,Provinsi_4,12,4
+Kabupaten_25,Provinsi_4,16,4
+Kabupaten_26,Provinsi_4,18,3
+Kabupaten_27,Provinsi_4,10,4
+Kabupaten_28,Provinsi_4,6,3
+Kabupaten_29,Provinsi_5,16,4
+Kabupaten_30,Provinsi_5,9,1
+Kabupaten_31,Provinsi_5,5,4
+Kabupaten_32,Provinsi_5,16,3
+Kabupaten_33,Provinsi_5,14,3
+Kabupaten_34,Provinsi_5,10,2
+Kabupaten_35,Provinsi_5,17,1
+Kabupaten_36,Provinsi_6,16,4
+Kabupaten_37,Provinsi_6,13,2
+Kabupaten_38,Provinsi_6,5,4
+Kabupaten_39,Provinsi_6,15,4
+Kabupaten_40,Provinsi_6,15,2
+Kabupaten_41,Provinsi_6,19,2
+Kabupaten_42,Provinsi_6,14,2
+Kabupaten_43,Provinsi_7,16,2
+Kabupaten_44,Provinsi_7,16,2
+Kabupaten_45,Provinsi_7,19,4
+Kabupaten_46,Provinsi_7,18,2
+Kabupaten_47,Provinsi_7,18,1
+Kabupaten_48,Provinsi_7,19,3
+Kabupaten_49,Provinsi_7,18,2
+Kabupaten_50,Provinsi_8,7,2
