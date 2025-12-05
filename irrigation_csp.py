@@ -336,8 +336,6 @@ def forward_checking(csp, var, value, assignment):
         if len(domain) == 1 and v not in assignment and v != var:
             forced[v] = domain[0]
     return forced
-    return new_domains
-
 
 
 # ============
