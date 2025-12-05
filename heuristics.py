@@ -6,7 +6,7 @@ def count_remaining_values(var, assignment, csp):
     count = 0
     # Mengambil daftar nilai domain yang mungkin untuk variabel 'var'
     for value in csp['domain'][var]:
-        # Menggunakan is_consistent untuk memverifikasi apakah nilai tersebut valid
+        # Menggunakan is_consistent (yang harus didefinisikan di Bagian 2)
         if is_consistent(var, value, assignment, csp):
             count += 1
     return count
@@ -55,4 +55,3 @@ def select_unassigned_variable(assignment, csp):
     # 3. Terapkan Degree Heuristic (Pemutus Ikatan)
     # Pilih dari kandidat MRV, variabel dengan degree maksimum.
     return max(mrv_candidates, key=lambda var: get_degree(var, unassigned_vars, csp))
-
