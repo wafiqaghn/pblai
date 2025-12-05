@@ -80,7 +80,6 @@ BT + MRV + FC     0.5518      Berhasil   50/50
 
 ## ❗ Catatan Singkat
 
-* Jangan lupa install library dulu.
 * Program otomatis jalan hingga visualisasi muncul.
 * Kalau nggak ada solusi valid, heatmap nggak ditampilkan.
 
