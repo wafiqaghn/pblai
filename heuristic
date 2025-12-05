@@ -1,0 +1,87 @@
+def count_remaining_values(var, assignment, csp):
+    """
+    Menghitung jumlah nilai domain yang konsisten untuk variabel yang belum ditetapkan (var).
+    Memeriksa setiap nilai domain terhadap semua constraint (Kapasitas, Prioritas, Provinsi).
+    """
+    count = 0
+    # Mengambil daftar nilai domain yang mungkin untuk variabel 'var'
+    for value in csp['domain'][var]:
+        # Menggunakan is_consistent untuk memverifikasi apakah nilai tersebut valid
+        if is_consistent(var, value, assignment, csp):
+            count += 1
+    return count
+
+def get_degree(var, unassigned_vars, csp):
+    """
+    Menghitung jumlah constraint 'provinsi_constraint' yang melibatkan 'var' dengan variabel lain
+    yang masih berada di dalam list 'unassigned_vars'.
+    """
+    count = 0
+    # Iterasi melalui semua constraint dalam model CSP
+    for constraint in csp['constraints']:
+        # Kita hanya tertarik pada 'provinsi_constraint'
+        if constraint[0] == 'provinsi_constraint':
+            _, v1, v2, _ = constraint
+            
+            # Cek apakah 'var' terlibat dengan variabel lain yang belum ditetapkan
+            if var == v1 and v2 in unassigned_vars:
+                count += 1
+            elif var == v2 and v1 in unassigned_vars:
+                count += 1
+    return count
+
+def select_unassigned_variable(assignment, csp):
+    """
+    Selects the next unassigned variable using MRV (Minimum Remaining Values)
+    with Degree Heuristic as a tie-breaker, instead of canonical order.
+    [cite: 32, 33, 34, 35]
+    """
+    # 1. Identifikasi variabel yang belum ditetapkan
+    unassigned_vars = [var for var in csp['variables'] if var not in assignment]
+    
+    if not unassigned_vars:
+        return None # Semua sudah ditetapkan
+
+    # 2. Terapkan MRV: Cari variabel dengan nilai sisa minimum
+    min_mrv = float('inf')
+    mrv_candidates = []
+    
+    for var in unassigned_vars:
+        # Menghitung Remaining Values (Most Constrained Variable)
+        count = count_remaining_values(var, assignment, csp)
+        
+        if count < min_mrv:
+            min_mrv = count
+            mrv_candidates = [var]
+        elif count == min_mrv:
+            mrv_candidates.append(var)
+            
+    if len(mrv_candidates) == 1:
+        # Tidak ada ikatan
+        return mrv_candidates[0]
+    
+    # 3. Terapkan Degree Heuristic (Pemutus Ikatan)
+    
+    max_degree = -1
+    best_var = None
+    
+    for var in mrv_candidates:
+        # Menghitung Degree (Most Constraining Variable)
+        degree = get_degree(var, unassigned_vars, csp)
+        
+        # Cari derajat maksimum
+        if degree > max_degree:
+            max_degree = degree
+            best_var = var
+            
+    # Jika masih ada ikatan, akan mengembalikan salah satu kandidat secara urut
+    return best_var
+
+# Heuristics
+def mrv_heuristic():
+    """Minimum Remaining Values. Logika diimplementasikan dalam select_unassigned_variable."""
+    pass
+
+def degree_heuristic():
+    """Degree Heuristic. Logika diimplementasikan dalam select_unassigned_variable sebagai tie-breaker."""
+    pass
