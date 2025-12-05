@@ -305,13 +305,18 @@ def run_experiments():
         dataset = load_dataset(FILE_MAIN, FILE_CSP)
         if dataset is None: return
         base_csp = create_csp_model(dataset)
+        # Merge required keys for constraint checking
+        base_csp['kebutuhan'] = dataset['kebutuhan']
+        base_csp['prioritas'] = dataset['prioritas']
+        base_csp['provinsi'] = dataset['provinsi']
     except Exception as e:
         print(f"Error loading dataset: {e}")
         return
 
     scenarios = [
         {"name": "BT + MRV", "inference": None},
-        {"name": "BT + MRV + FC", "inference": "forward_checking"}
+        # TODO: Enable after forward_checking is implemented
+        # {"name": "BT + MRV + FC", "inference": "forward_checking"}
     ]
     
     results = []
