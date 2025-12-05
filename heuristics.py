@@ -1,6 +1,6 @@
 def count_remaining_values(var, assignment, csp):
     """
-    Menghitung jumlah nilai domain yang konsisten untuk variabel yang belum ditetapkan (var).
+    Menghitung jumlah nilai domain yang konsisten (Remaining Values) untuk variabel yang belum ditetapkan (var).
     Memeriksa setiap nilai domain terhadap semua constraint (Kapasitas, Prioritas, Provinsi)
     menggunakan fungsi is_consistent().
     """
@@ -19,7 +19,7 @@ def get_degree(var, unassigned_vars, csp):
     dengan variabel lain yang masih berada di dalam list 'unassigned_vars'.
     """
     count = 0
-    # Hanya fokus pada constraint biner standar (Provinsi)
+    # Hanya fokus pada constraint biner (Provinsi)
     for constraint in csp['constraints']:
         if constraint[0] == 'provinsi_constraint':
             _, v1, v2, _ = constraint
@@ -35,7 +35,7 @@ def get_degree(var, unassigned_vars, csp):
 def select_unassigned_variable(assignment, csp):
     """
     Selects the next unassigned variable using MRV (Minimum Remaining Values)
-    with Degree Heuristic as a tie-breaker. (Most Constrained Variable, Most Constraining Variable)
+    with Degree Heuristic as a tie-breaker.
     """
     unassigned_vars = [var for var in csp['variables'] if var not in assignment]
 
@@ -51,18 +51,10 @@ def select_unassigned_variable(assignment, csp):
     mrv_candidates = [var for var, count in mrv_counts.items() if count == min_mrv]
 
     if len(mrv_candidates) == 1:
-        # Tidak ada ikatan, kembalikan variabel MRV
+        # Tidak ada ikatan
         return mrv_candidates[0]
 
     # 3. Terapkan Degree Heuristic (Pemutus Ikatan)
-    # Pilih dari kandidat MRV, variabel dengan degree maksimum.
+    # Pilih dari kandidat MRV, variabel dengan degree maksimum (Most Constraining Variable).
     return max(mrv_candidates, key=lambda var: get_degree(var, unassigned_vars, csp))
 
-# Heuristics
-def mrv_heuristic():
-    """Minimum Remaining Values. Logika diimplementasikan dalam select_unassigned_variable."""
-    pass
-
-def degree_heuristic():
-    """Degree Heuristic. Logika diimplementasikan dalam select_unassigned_variable sebagai tie-breaker."""
-    pass
