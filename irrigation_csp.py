@@ -1,18 +1,28 @@
 # irrigation_csp.py
-# ================= BAGIAN 1 - ANGGOTA 1 =================
-# Data & CSP Structure
+
 import pandas as pd
 import numpy as np
+import copy
+import time
+import matplotlib.pyplot as plt
+import seaborn as sns
+import matplotlib.patches as mpatches
 
+# ================= BAGIAN 1 - ANGGOTA 1 =================
+# Data & CSP Structure
 
 # np.random.seed(42)
 
-# # df = pd.DataFrame({
-# #     'kabupaten': [f'Kabupaten_{i}' for i in range(1, 51)],
-# #     'provinsi': np.random.choice(['Provinsi A', 'Provinsi B', 'Provinsi C'], 50),
-# #     'kebutuhan_jam': np.random.randint(5, 20, 50),
-# #     'prioritas': np.random.randint(1, 5, 50)
-# # })
+
+# # Kita buat 8 provinsi: 7 provinsi dengan 7 petak, 1 provinsi dengan 1 petak
+# provinsi_list = ['Provinsi_1']*7 + ['Provinsi_2']*7 + ['Provinsi_3']*7 + ['Provinsi_4']*7 + ['Provinsi_5']*7 + ['Provinsi_6']*7 + ['Provinsi_7']*7 + ['Provinsi_8']*1
+
+# df = pd.DataFrame({
+#     'kabupaten': [f'Kabupaten_{i}' for i in range(1, 51)],
+#     'provinsi': provinsi_list,z
+#     'kebutuhan_jam': np.random.randint(5, 20, 50),
+#     'prioritas': np.random.randint(1, 5, 50)
+# })
 
 # df.to_csv('dataset_irigasi_50_petak.csv', index=False)
 # print("Dataset telah disimpan ke 'dataset_irigasi_50_petak.csv'")
@@ -32,7 +42,8 @@ def load_dataset(path_main, path_csp):
     """
 
     data_main = pd.read_csv(path_main)
-    data_csp = pd.read_csv(path_csp)
+    data_csp  = pd.read_csv(path_csp)
+    
 
     # Variabel CSP: nama kabupaten (petak sawah)
     variables = list(data_csp['kabupaten'])
@@ -45,8 +56,6 @@ def load_dataset(path_main, path_csp):
     # Info kebutuhan dan prioritas
     kebutuhan = dict(zip(data_csp['kabupaten'], data_csp['kebutuhan_jam']))
     prioritas = dict(zip(data_csp['kabupaten'], data_csp['prioritas']))
-
-    # Provinsi tiap kabupaten (untuk constraint wilayah)
     provinsi = dict(zip(data_main['kabupaten'], data_main['provinsi']))
 
     return {
@@ -58,18 +67,14 @@ def load_dataset(path_main, path_csp):
     }
 
 
-# Fungsi Membuat Model CSP
-
 def create_csp_model(csp):
     """
     Membuat struktur model CSP berisi variabel, domain,
     dan daftar constraint dasar yang diperlukan.
     """
-
     variables = csp['variables']
     domain = csp['domain']
-    provinsi = csp['provinsi']
-
+    
     constraints = []
 
     # Constraint: setiap petak hanya boleh mendapat satu jadwal
@@ -78,7 +83,7 @@ def create_csp_model(csp):
 
     # Constraint: petak pada provinsi yang sama tidak boleh disiram di hari yang sama
     def provinsi_constraint(v1, v2, d1, d2):
-        if provinsi[v1] == provinsi[v2]:
+        if csp['provinsi'][v1] == csp['provinsi'][v2]:
             return d1 != d2
         return True
 
@@ -96,7 +101,11 @@ def create_csp_model(csp):
     return {
         'variables': variables,
         'domain': domain,
-        'constraints': constraints
+        'constraints': constraints,
+        'kebutuhan': csp['kebutuhan'],
+        'prioritas': csp['prioritas'],
+        'provinsi': csp['provinsi'],
+        'kapasitas_per_hari': 9999
     }
 
 # ================= BAGIAN 2 - ANGGOTA 2 =================  
@@ -134,14 +143,11 @@ def recursive_backtracking(assignment, csp):
 
             # optional inference (forward checking)
             if csp.get('inference') == 'forward_checking':
-                new_domains = forward_checking(csp, var, value, assignment)
-                if new_domains is None:
+                if forward_checking(csp, var, value, assignment) is None:
                     # gagal, undo assignment
                     del assignment[var]
                     csp['domain'] = saved_domains
                     continue
-                # update domains
-                csp['domain'] = new_domains
 
             # recursive call
             result = recursive_backtracking(assignment, csp)
@@ -215,7 +221,7 @@ def check_capacity_constraint(var, value, assignment, csp):
         if assigned_day == target_day:
             total_hours += csp['kebutuhan'][assigned_var]
     total_hours += csp['kebutuhan'][var]
-    return total_hours > csp.get('kapasitas_per_hari', 20)
+    return total_hours > csp.get('kapasitas_per_hari', 9999)
 
 
 def check_priority_constraint(var, value, assignment, csp):
@@ -250,22 +256,287 @@ def degree_heuristic():
     """Degree Heuristic"""
     pass
 
+def count_remaining_values(var, assignment, csp):
+    """
+    Menghitung jumlah nilai domain yang konsisten (Remaining Values) untuk variabel yang belum ditetapkan (var).
+    Memeriksa setiap nilai domain terhadap semua constraint menggunakan fungsi is_consistent().
+    """
+    count = 0
+    # Mengambil daftar nilai domain yang mungkin untuk variabel 'var'
+    for value in csp['domain'][var]:
+        # Menggunakan is_consistent (yang harus didefinisikan di Bagian 2)
+        if is_consistent(var, value, assignment, csp):
+            count += 1
+    return count
+
+
+def get_degree(var, unassigned_vars, csp):
+    """
+    Degree Heuristic: Menghitung jumlah constraint BINER ('provinsi_constraint') yang melibatkan 'var'
+    dengan variabel lain yang masih berada di dalam list 'unassigned_vars'.
+    """
+    count = 0
+    # Hanya fokus pada constraint biner antar-variabel (Provinsi)
+    for constraint in csp['constraints']:
+        if constraint[0] == 'provinsi_constraint':
+            _, v1, v2, _ = constraint
+
+            # Cek apakah 'var' terlibat dengan variabel lain yang belum ditetapkan
+            if var == v1 and v2 in unassigned_vars:
+                count += 1
+            elif var == v2 and v1 in unassigned_vars:
+                count += 1
+    return count
+
+
+def select_unassigned_variable(assignment, csp):
+    """
+    Selects the next unassigned variable using MRV (Minimum Remaining Values)
+    with Degree Heuristic as a tie-breaker.
+    """
+    unassigned_vars = [var for var in csp['variables'] if var not in assignment]
+
+    if not unassigned_vars:
+        return None
+
+    # 1. Hitung dan Cache MRV Counts (Efisiensi)
+    mrv_counts = {var: count_remaining_values(var, assignment, csp) for var in unassigned_vars}
+
+    # 2. Terapkan MRV: Cari variabel dengan nilai sisa minimum
+    min_mrv = min(mrv_counts.values())
+    mrv_candidates = [var for var, count in mrv_counts.items() if count == min_mrv]
+
+    if len(mrv_candidates) == 1:
+        # Tidak ada ikatan
+        return mrv_candidates[0]
+
+    # 3. Terapkan Degree Heuristic (Pemutus Ikatan)
+    # Pilih dari kandidat MRV, variabel dengan degree maksimum.
+    return max(mrv_candidates, key=lambda var: get_degree(var, unassigned_vars, csp))
+
 # ================= BAGIAN 4 - ANGGOTA 4 =================
 # Constraint Propagation  
-def forward_checking():
-    """Forward Checking"""
-    pass
+def forward_checking(csp, var, value, assignment):
+    """
+    Forward Checking:
+    - Setelah var = value, kurangi domain variabel lain yang berkaitan
+    - Jika domain suatu variabel menjadi kosong → gagal
+    """
+    # Copy domain agar tidak merusak domain asli
+    new_domains = {v: list(csp['domain'][v]) for v in csp['domain']}
+    new_domains[var] = [value]
 
-def ac3():
-    """AC-3 Algorithm"""
-    pass
+    # Hanya evaluasi constraint biner: provinsi_constraint
+    for constraint in csp['constraints']:
+        if constraint[0] != "provinsi_constraint":
+            continue
+
+        _, v1, v2, fn = constraint
+
+        # Jika var adalah v1 → prune domain v2
+        if v1 == var and v2 not in assignment:
+            removed = []
+            for d2 in new_domains[v2]:
+                if not fn(v1, v2, value, d2):
+                    removed.append(d2)
+            for r in removed:
+                new_domains[v2].remove(r)
+            if len(new_domains[v2]) == 0:
+                return None
+
+        # Jika var adalah v2 → prune domain v1
+        if v2 == var and v1 not in assignment:
+            removed = []
+            for d1 in new_domains[v1]:
+                if not fn(v1, v2, d1, value):
+                    removed.append(d1)
+            for r in removed:
+                new_domains[v1].remove(r)
+            if len(new_domains[v1]) == 0:
+                return None
+
+    # Perbarui domain CSP dengan pruned values
+    for v in new_domains:
+        csp['domain'][v] = new_domains[v]
+    # Return hanya variabel yg forced jadi single values
+    forced = {}
+    for v, domain in new_domains.items():
+        if len(domain) == 1 and v not in assignment and v != var:
+            forced[v] = domain[0]
+    return forced
+
+
+# ============
+#   AC-3
+# ============
+
+def revise(csp, xi, xj, fn):
+    """
+    Revisi domain xi:
+    - Hilangkan nilai yang tidak punya pasangan konsisten di xj
+    """
+    revised = False
+    to_remove = []
+
+    for x in list(csp['domain'][xi]):
+        supported = False
+        for y in csp['domain'][xj]:
+            if fn(xi, xj, x, y):
+                supported = True
+                break
+        if not supported:
+            to_remove.append(x)
+
+    for x in to_remove:
+        csp['domain'][xi].remove(x)
+        revised = True
+
+    return revised
+
+
+
+def ac3(csp):
+    """
+    AC-3 tanpa deque (menggunakan list biasa sebagai queue).
+    """
+    queue = []
+
+    # Tambahkan arc yang bertipe provinsi_constraint
+    for constraint in csp['constraints']:
+        if constraint[0] == "provinsi_constraint":
+            _, v1, v2, fn = constraint
+            queue.append((v1, v2, fn))
+            queue.append((v2, v1, fn))  # reverse arc
+
+    # Proses queue
+    while queue:
+        xi, xj, fn = queue.pop(0)  # pop kiri
+
+        if revise(csp, xi, xj, fn):
+
+            # Jika domain kosong → CSP tidak valid
+            if len(csp['domain'][xi]) == 0:
+                return False
+
+            # Masukkan tetangga xi kembali ke queue (kecuali xj)
+            for constraint in csp['constraints']:
+                if constraint[0] != "provinsi_constraint":
+                    continue
+
+                _, v1, v2, fn2 = constraint
+
+                # xi berperan sebagai v2: tambah (v1 → xi)
+                if v2 == xi and v1 != xj:
+                    queue.append((v1, xi, fn2))
+
+                # xi berperan sebagai v1: tambah (v2 → xi)
+                if v1 == xi and v2 != xj:
+                    queue.append((v2, xi, fn2))
+
+    return True
 
 # ================= BAGIAN 5 - ANGGOTA 5 =================
 # Testing & Visualization
+# Modified run_experiments to include AC-3
+# Modified run_experiments to include AC-3 for the specified scenarios
 def run_experiments():
-    """Uji berbagai skenario"""
-    pass
+    FILE_MAIN = 'dataset_irigasi_50_petak.csv'
+    FILE_CSP = 'data_csp_irigasi.csv'
+    
+    try:
+        dataset = load_dataset(FILE_MAIN, FILE_CSP)
+        base_csp = create_csp_model(dataset)
+        print(f"Dataset Loaded: {len(base_csp['variables'])} Petak.")
+    except (FileNotFoundError, pd.errors.EmptyDataError) as e:
+        print(f"Error saat membaca dataset: {e}")
+        return
 
-def visualize_results():
-    """Visualisasi jadwal"""
-    pass
+    scenarios = [
+        {"name": "BT + MRV ", "inference": None, "use_ac3": True},  # AC-3 enabled
+        {"name": "BT + MRV + FC", "inference": "forward_checking", "use_ac3": True}  # AC-3 + FC
+    ]
+    
+    results = []
+    best_solution = None
+    
+    for scenario in scenarios:
+        print(f"Running: {scenario['name']}...")
+        csp_run = copy.deepcopy(base_csp)
+        csp_run['inference'] = scenario['inference']
+        
+        # Call AC-3 if specified
+        if scenario['use_ac3']:
+            if not ac3(csp_run):
+                print(f"AC-3 failed for {scenario['name']}: Inconsistent CSP.")
+                results.append({
+                    "Algoritma": scenario['name'],
+                    "Waktu (s)": 0.0,
+                    "Status": "Gagal (AC-3)",
+                    "Terjadwal": "0/50"
+                })
+                continue
+        
+        start = time.time()
+        solution = backtracking_search(csp_run)
+        duration = time.time() - start
+        
+        success = solution is not None and len(solution) == len(base_csp['variables'])
+        
+        results.append({
+            "Algoritma": scenario['name'],
+            "Waktu (s)": round(duration, 4),
+            "Status": "Berhasil" if success else "Gagal",
+            "Terjadwal": f"{len(solution) if solution else 0}/{len(base_csp['variables'])}"
+        })
+        
+        if success and scenario['inference'] == 'forward_checking':
+            best_solution = solution
+
+    print("\n=== HASIL EKSPERIMEN ===")
+    print(pd.DataFrame(results).to_string(index=False))
+    
+    if best_solution:
+        visualize_results(best_solution, base_csp)
+    else:
+        print("Solusi tidak ditemukan, visualisasi dilewati.")
+    
+    if best_solution:
+        visualize_results(best_solution, base_csp)
+    else:
+        print("Solusi tidak ditemukan, visualisasi dilewati.")
+
+def visualize_results(assignment, csp):
+    if not assignment:
+        return
+
+    days = ['Hari_1', 'Hari_2', 'Hari_3', 'Hari_4', 'Hari_5', 'Hari_6', 'Hari_7']
+    # Sorting: Group by Provinsi, dan Priority Descending
+    sorted_vars = sorted(assignment.keys(), key=lambda k: (csp['provinsi'].get(k, ''), -csp['prioritas'].get(k, 0)))
+    
+    matrix = []
+    labels = []
+    
+    for var in sorted_vars:
+        prio = csp['prioritas'].get(var, 0)
+        day_assigned = assignment[var]
+        matrix.append([prio if d == day_assigned else 0 for d in days])
+        labels.append(f"{var} ({csp['provinsi'][var]})")
+
+    plt.figure(figsize=(10, 12))
+    cmap = sns.color_palette(["#f7f7f7", "#ccece6", "#66c2a4", "#2ca25f", "#006d2c"])
+    sns.heatmap(matrix, cmap=cmap, linewidths=0.5, linecolor='lightgray', 
+                xticklabels=days, yticklabels=labels, cbar=False)
+    
+    legend_elements = [
+        mpatches.Patch(facecolor='#ccece6', label='Prioritas 1'),
+        mpatches.Patch(facecolor='#66c2a4', label='Prioritas 2'),
+        mpatches.Patch(facecolor='#2ca25f', label='Prioritas 3'),
+        mpatches.Patch(facecolor='#006d2c', label='Prioritas 4')
+    ]
+    plt.legend(handles=legend_elements, loc='upper left', bbox_to_anchor=(1, 1))
+    plt.title('Jadwal Irigasi Optimal (Heatmap)')
+    plt.tight_layout()
+    plt.show()
+
+if __name__ == '__main__':
+    run_experiments()
