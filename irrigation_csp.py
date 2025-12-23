@@ -11,25 +11,25 @@ import matplotlib.patches as mpatches
 # ================= BAGIAN 1 - ANGGOTA 1 =================
 # Data & CSP Structure
 
-np.random.seed(42)
+# np.random.seed(42)
 
 
-# Kita buat 8 provinsi: 7 provinsi dengan 7 petak, 1 provinsi dengan 1 petak
-provinsi_list = ['Provinsi_1']*7 + ['Provinsi_2']*7 + ['Provinsi_3']*7 + ['Provinsi_4']*7 + ['Provinsi_5']*7 + ['Provinsi_6']*7 + ['Provinsi_7']*7 + ['Provinsi_8']*1
+# # Kita buat 8 provinsi: 7 provinsi dengan 7 petak, 1 provinsi dengan 1 petak
+# provinsi_list = ['Provinsi_1']*7 + ['Provinsi_2']*7 + ['Provinsi_3']*7 + ['Provinsi_4']*7 + ['Provinsi_5']*7 + ['Provinsi_6']*7 + ['Provinsi_7']*7 + ['Provinsi_8']*1
 
-df = pd.DataFrame({
-    'kabupaten': [f'Kabupaten_{i}' for i in range(1, 51)],
-    'provinsi': provinsi_list,
-    'kebutuhan_jam': np.random.randint(5, 20, 50),
-    'prioritas': np.random.randint(1, 5, 50)
-})
+# df = pd.DataFrame({
+#     'kabupaten': [f'Kabupaten_{i}' for i in range(1, 51)],
+#     'provinsi': provinsi_list,z
+#     'kebutuhan_jam': np.random.randint(5, 20, 50),
+#     'prioritas': np.random.randint(1, 5, 50)
+# })
 
-df.to_csv('dataset_irigasi_50_petak.csv', index=False)
-print("Dataset telah disimpan ke 'dataset_irigasi_50_petak.csv'")
+# df.to_csv('dataset_irigasi_50_petak.csv', index=False)
+# print("Dataset telah disimpan ke 'dataset_irigasi_50_petak.csv'")
 
-csp_data = df[['kabupaten', 'kebutuhan_jam', 'prioritas']]
-csp_data.to_csv('data_csp_irigasi.csv', index=False)
-print("Data CSP telah disimpan ke 'data_csp_irigasi.csv'")
+# csp_data = df[['kabupaten', 'kebutuhan_jam', 'prioritas']]
+# csp_data.to_csv('data_csp_irigasi.csv', index=False)
+# print("Data CSP telah disimpan ke 'data_csp_irigasi.csv'")
 
 
 # ==============================
@@ -437,6 +437,8 @@ def ac3(csp):
 
 # ================= BAGIAN 5 - ANGGOTA 5 =================
 # Testing & Visualization
+# Modified run_experiments to include AC-3
+# Modified run_experiments to include AC-3 for the specified scenarios
 def run_experiments():
     FILE_MAIN = 'dataset_irigasi_50_petak.csv'
     FILE_CSP = 'data_csp_irigasi.csv'
@@ -450,8 +452,8 @@ def run_experiments():
         return
 
     scenarios = [
-        {"name": "BT + MRV", "inference": None},
-        {"name": "BT + MRV + FC", "inference": "forward_checking"}
+        {"name": "BT + MRV ", "inference": None, "use_ac3": True},  # AC-3 enabled
+        {"name": "BT + MRV + FC", "inference": "forward_checking", "use_ac3": True}  # AC-3 + FC
     ]
     
     results = []
@@ -461,6 +463,18 @@ def run_experiments():
         print(f"Running: {scenario['name']}...")
         csp_run = copy.deepcopy(base_csp)
         csp_run['inference'] = scenario['inference']
+        
+        # Call AC-3 if specified
+        if scenario['use_ac3']:
+            if not ac3(csp_run):
+                print(f"AC-3 failed for {scenario['name']}: Inconsistent CSP.")
+                results.append({
+                    "Algoritma": scenario['name'],
+                    "Waktu (s)": 0.0,
+                    "Status": "Gagal (AC-3)",
+                    "Terjadwal": "0/50"
+                })
+                continue
         
         start = time.time()
         solution = backtracking_search(csp_run)
@@ -480,6 +494,11 @@ def run_experiments():
 
     print("\n=== HASIL EKSPERIMEN ===")
     print(pd.DataFrame(results).to_string(index=False))
+    
+    if best_solution:
+        visualize_results(best_solution, base_csp)
+    else:
+        print("Solusi tidak ditemukan, visualisasi dilewati.")
     
     if best_solution:
         visualize_results(best_solution, base_csp)
